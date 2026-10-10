@@ -4,7 +4,6 @@ import { newId } from "./condition-tree";
 // Shared contract between the /api/ai-rule route (server) and the
 // "Describe with AI" dialog (client). The model never writes BusinessRule
 // objects directly — it returns this small, flat draft, which we validate
-// against the live Field Catalog before turning it into real tree nodes.
 
 export const AI_OPERATORS: Operator[] = ["=", "!=", ">", "<", ">=", "<=", "contains", "starts_with", "in", "between"];
 export const AI_ACTION_TYPES: ActionType[] = ["Approve", "Reject", "Flag for Review", "Show Message", "Assign Value"];
