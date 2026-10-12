@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2, AlertTriangle, ArrowRight } from "lucide-react";
 import { BusinessField } from "@/lib/types";
-import { AiRuleDraft, AiRuleResponse } from "@/lib/ai-rule";
+import { AiConditionDraft, AiConditionItem, AiRuleDraft, AiRuleResponse, isGroupDraft } from "@/lib/ai-rule";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,46 @@ const EXAMPLES = [
   "Reject home loan if applicant age is below 21",
   "Flag for review if credit score is between 650 and 700 and loan amount is more than 50 lakh",
   "Approve if employment type is Salaried or Government and monthly income is at least 40000, otherwise reject",
+  "Approve if loan amount is below 4 lakh, or if it is above 4 lakh and credit score is above 650; otherwise reject",
+  "Set interest rate to 8.5% for credit score 800 and above, 9.5% for 750-799 and 11% for 700-749",
 ];
 
 const OPERATOR_TEXT: Record<string, string> = {
   "=": "is", "!=": "is not", ">": ">", "<": "<", ">=": "≥", "<=": "≤",
   contains: "contains", starts_with: "starts with", in: "is one of", between: "is between",
 };
+
+// Recursive: a group renders as a dashed box that can hold more groups.
+function ConditionList({ items, logic, labelFor }: { items: AiConditionItem[]; logic: string; labelFor: (key?: string) => string }) {
+  return (
+    <>
+      {items.map((c, i) => (
+        <div key={i} className="flex flex-wrap items-start gap-1.5">
+          {i > 0 && <Badge variant="outline">{logic}</Badge>}
+          {isGroupDraft(c) ? (
+            <div className="space-y-1 rounded-lg border border-dashed px-2.5 py-1.5">
+              <ConditionList items={c.conditions} logic={c.logic} labelFor={labelFor} />
+            </div>
+          ) : (
+            <p className="flex flex-wrap items-center gap-1.5">
+              <ConditionText c={c} labelFor={labelFor} />
+            </p>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function ConditionText({ c, labelFor }: { c: AiConditionDraft; labelFor: (key?: string) => string }) {
+  return (
+    <>
+      <span className="font-medium">{labelFor(c.field)}</span>
+      <span className="text-muted-foreground">{OPERATOR_TEXT[c.operator] ?? c.operator}</span>
+      <span className="font-mono">{c.operator === "between" ? `${c.value} and ${c.value2 ?? "?"}` : c.value}</span>
+    </>
+  );
+}
 
 export function AiRuleDialog({
   open,
@@ -126,15 +160,8 @@ export function AiRuleDialog({
 
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">If</p>
-                {draft.conditions.map((c, i) => (
-                  <p key={i} className="flex flex-wrap items-center gap-1.5">
-                    {i > 0 && <Badge variant="outline">{draft.logic}</Badge>}
-                    <span className="font-medium">{labelFor(c.field)}</span>
-                    <span className="text-muted-foreground">{OPERATOR_TEXT[c.operator] ?? c.operator}</span>
-                    <span className="font-mono">{c.operator === "between" ? `${c.value} and ${c.value2 ?? "?"}` : c.value}</span>
-                  </p>
-                ))}
-                {draft.conditions.length === 0 && <p className="text-muted-foreground">No conditions — the actions always run.</p>}
+                <ConditionList items={draft.conditions} logic={draft.logic} labelFor={labelFor} />
+                {draft.conditions.length === 0 && <p className="text-muted-foreground">No conditions — applies to every case.</p>}
               </div>
 
               {([["Then", draft.actions], ["Else", draft.elseActions]] as const).map(([label, list]) =>
@@ -145,6 +172,16 @@ export function AiRuleDialog({
                       <p key={i} className="flex flex-wrap items-center gap-1.5">
                         <Badge variant={a.type === "Reject" ? "destructive" : "secondary"}>{a.type}</Badge>
                         {a.type === "Assign Value" && <span>{labelFor(a.outputField)} = <span className="font-mono">{a.outputValue}</span></span>}
+                        {a.type === "Bracket Lookup" && (
+                          <span className="w-full space-y-0.5 pl-1">
+                            <span className="block text-muted-foreground">{labelFor(a.outputField)} by {labelFor(a.bracketField)}:</span>
+                            {a.brackets?.map((b, k) => (
+                              <span key={k} className="block font-mono">
+                                {b.min} – {b.max} → {b.outputValue}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                         {a.reasonCode && <span className="font-mono text-muted-foreground">{a.reasonCode}</span>}
                         {a.message && <span className="text-muted-foreground">— {a.message}</span>}
                       </p>

@@ -1,0 +1,18 @@
+{
+  "file": "test.jsonl",
+  "passed": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "ex-001",
+      "tag": "boolean",
+      "text": "Reject if KYC is not verified",
+      "pass": false,
+      "problems": [
+        "error: Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model. (The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.)"
+      ],
+      "ms": 179,
+      "got": "Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model. (The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.)"
+    }
+  ]
+}

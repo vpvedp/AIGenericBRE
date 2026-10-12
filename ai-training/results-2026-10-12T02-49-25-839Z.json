@@ -1,0 +1,40 @@
+{
+  "file": "test.jsonl",
+  "passed": 0,
+  "total": 3,
+  "results": [
+    {
+      "id": "ex-001",
+      "tag": "boolean",
+      "text": "Reject if KYC is not verified",
+      "pass": false,
+      "problems": [
+        "error: Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+      ],
+      "ms": 702,
+      "got": "Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+    },
+    {
+      "id": "ex-002",
+      "tag": "indian-amount",
+      "text": "Reject if net worth is below 1 crore",
+      "pass": false,
+      "problems": [
+        "error: Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+      ],
+      "ms": 67,
+      "got": "Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+    },
+    {
+      "id": "ex-003",
+      "tag": "numeric",
+      "text": "Decline the case if gold purity is more than 18%",
+      "pass": false,
+      "problems": [
+        "error: Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+      ],
+      "ms": 128,
+      "got": "Model \"llama-3.3-70b-versatile\" isn't available — set AI_MODEL in .env.local to a current model."
+    }
+  ]
+}

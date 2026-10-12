@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AI_ACTION_TYPES, AI_OPERATORS, AiRuleDraft, AiRuleRequest, AiRuleResponse, sanitizeDraft } from "@/lib/ai-rule";
+import { AI_ACTION_TYPES, AI_OPERATORS, AiRuleDraft, AiRuleRequest, AiRuleResponse, sanitizeDraft, unwrapDraft } from "@/lib/ai-rule";
+import { AI_RULE_EXAMPLES, AiExampleCondition, AiExampleGroup, AiRuleExample } from "@/lib/ai-rule-examples";
 
 // POST /api/ai-rule — plain English → draft rule for the Rule Builder.
 //
-// The API key stays on the server (ANTHROPIC_API_KEY in .env.local); the
-// browser only ever sees the validated draft. Claude is forced to answer via
-// a tool call so the output is always JSON matching our schema, never prose.
+// Two AI providers, picked by AI_PROVIDER in .env.local:
+//   - "groq"      — free cloud AI, nothing to install. Needs GROQ_API_KEY
+//                   (free at console.groq.com). Works with any OpenAI-compatible
+//                   service too (OpenRouter, GitHub Models) via AI_BASE_URL.
+//   - "ollama"    — free, runs on your own computer. Needs Ollama installed.
+//   - "anthropic" — Claude API. Needs ANTHROPIC_API_KEY (paid).
+// If AI_PROVIDER isn't set, the first key found decides: Groq → Claude → Ollama.
+// Both are asked for the SAME JSON shape (RULE_SCHEMA below), and both
+// results go through the same sanitizeDraft() check, so the UI doesn't care
+// which one answered.
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
+const PROVIDER = (
+  process.env.AI_PROVIDER ??
+  (process.env.GROQ_API_KEY ? "groq" : process.env.ANTHROPIC_API_KEY ? "anthropic" : "ollama")
+).toLowerCase();
+const OPENAI_COMPAT_URL = process.env.AI_BASE_URL ?? "https://api.groq.com/openai/v1";
+const OPENAI_COMPAT_MODEL = process.env.AI_MODEL ?? "openai/gpt-oss-120b";
+const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:3b";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 const MAX_TEXT = 1000;
+
+type ProviderResult = { ok: true; raw: AiRuleDraft } | { ok: false; error: string; status: number };
 
 const actionSchema = {
   type: "object",
@@ -18,38 +36,58 @@ const actionSchema = {
     message: { type: "string", description: "Short user-facing reason" },
     outputField: { type: "string", description: "Field key — Assign Value only" },
     outputValue: { type: "string", description: "Value to assign — Assign Value only" },
+    bracketField: { type: "string", description: "Bracket Lookup only — numeric field tested against the ranges" },
+    brackets: {
+      type: "array",
+      description: "Bracket Lookup only — ranges, inclusive",
+      items: {
+        type: "object",
+        properties: { min: { type: "number" }, max: { type: "number" }, outputValue: { type: "string" } },
+        required: ["min", "max", "outputValue"],
+      },
+    },
   },
   required: ["type"],
 };
 
-const BUILD_RULE_TOOL = {
-  name: "build_rule",
-  description: "Return the business rule described by the user, using only the provided field keys.",
-  input_schema: {
+const CONDITION_PROPS = {
+  field: { type: "string", description: "Exact field key from the catalog" },
+  operator: { type: "string", enum: AI_OPERATORS },
+  value: { type: "string", description: "Plain number (no ₹, commas or units), option text, or comma-separated list for 'in'" },
+  value2: { type: "string", description: "Upper bound — 'between' only" },
+};
+
+// An item that is either a condition or a bracketed group, nested `depth`
+// levels deep. Written out explicitly (no $ref) so every provider accepts it.
+function groupOrCondition(depth: number): object {
+  if (depth === 0) return { type: "object", properties: CONDITION_PROPS, required: ["field", "operator", "value"] };
+  return {
     type: "object",
     properties: {
-      name: { type: "string", description: "Short rule name, Title Case, max 8 words" },
-      logic: { type: "string", enum: ["AND", "OR"] },
-      conditions: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            field: { type: "string", description: "Exact field key from the catalog" },
-            operator: { type: "string", enum: AI_OPERATORS },
-            value: { type: "string", description: "Plain number (no ₹, commas or units), option text, or comma-separated list for 'in'" },
-            value2: { type: "string", description: "Upper bound — 'between' only" },
-          },
-          required: ["field", "operator", "value"],
-        },
-      },
-      actions: { type: "array", items: actionSchema, description: "THEN — when conditions match" },
-      elseActions: { type: "array", items: actionSchema, description: "ELSE — only if the user described an otherwise case" },
-      explanation: { type: "string", description: "One sentence restating the rule in plain English" },
-      warnings: { type: "array", items: { type: "string" }, description: "Assumptions made or parts that could not be mapped" },
+      ...CONDITION_PROPS,
+      logic: { type: "string", enum: ["AND", "OR"], description: "Group only — how the group's items combine" },
+      conditions: { type: "array", items: groupOrCondition(depth - 1), description: "Group only" },
     },
-    required: ["name", "logic", "conditions", "actions", "elseActions", "explanation", "warnings"],
+  };
+}
+
+// The JSON shape we want back — shared by all providers.
+const RULE_SCHEMA = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Short rule name, Title Case, max 8 words" },
+    logic: { type: "string", enum: ["AND", "OR"] },
+    conditions: {
+      type: "array",
+      description: "Each item is EITHER a condition {field, operator, value} OR a group {logic, conditions:[...]}. Groups may contain groups (max 3 levels).",
+      items: groupOrCondition(3),
+    },
+    actions: { type: "array", items: actionSchema, description: "THEN — when conditions match" },
+    elseActions: { type: "array", items: actionSchema, description: "ELSE — only if the user described an otherwise case" },
+    explanation: { type: "string", description: "One sentence restating the rule in plain English" },
+    warnings: { type: "array", items: { type: "string" }, description: "Assumptions made or parts that could not be mapped" },
   },
+  required: ["name", "logic", "conditions", "actions", "elseActions", "explanation", "warnings"],
 };
 
 function systemPrompt(domain: string, fields: AiRuleRequest["fields"]) {
@@ -72,15 +110,203 @@ Guidelines:
 - "Reject/decline/deny" → Reject; "approve/accept" → Approve; "review/refer/manual check" → Flag for Review.
 - Give Reject and Flag for Review a reasonCode and a short message.
 - Leave elseActions empty unless the user describes what happens otherwise.
-- If something cannot be mapped to a field, leave it out and explain in warnings. Never invent field keys.`;
+- Two or more cases that lead to the same action ("approve if A, or if B and C") become ONE rule:
+  top-level logic "OR" with items [A, {"logic":"AND","conditions":[B, C]}]. Use a group only when needed.
+- Mixed AND/OR always needs groups — never put AND and OR at the same level. "A and (B or C)" →
+  logic "AND", items [A, {"logic":"OR","conditions":[B, C]}]. Groups can contain groups.
+- "neither X nor Y" / "not one of X, Y" → two "!=" conditions joined with AND (there is no "not in").
+- "unless X" means "if not X".
+- Ratios like "more than half of income" → use a computed ratio field if one exists (e.g. dti_ratio > 50).
+  Never compare two fields directly.
+- Tiered values ("rate 8.5% for score 800+, 9.5% for 750-799") → ONE "Bracket Lookup" action with
+  outputField, bracketField and inclusive ranges; no conditions needed. Use 900 as the top of credit scores.
+- One rule has only ONE "then" and ONE "else". If the description has three or more different outcomes
+  (e.g. reject below 600, review 600-700, approve above), build the rule for the FIRST outcome only and
+  list the extra rules the user must create in warnings.
+- If two branches leave a gap at a boundary ("below 4 lakh" / "above 4 lakh" leaves exactly 4 lakh
+  uncovered), keep the user's words but point out the gap in warnings.
+- If the description is contradictory or unclear (e.g. every branch gives the same result), make your best
+  guess and say exactly what you assumed in warnings.
+- If something cannot be mapped to a field, leave it out and explain in warnings. Never invent field keys.${examplesFor(fields)}`;
+}
+
+// Few-shot learning: show the model a few solved examples (from
+// ai-training/train.jsonl) so it copies the exact format. Only examples whose
+// fields exist in THIS industry are used, so we never hint at fields the
+// model isn't allowed to use. Set AI_FEW_SHOT=off to compare without them.
+function examplesFor(fields: AiRuleRequest["fields"]): string {
+  if ((process.env.AI_FEW_SHOT ?? "on").toLowerCase() === "off") return "";
+  const keys = new Set(fields.map((f) => f.key));
+  type Item = AiExampleCondition | AiExampleGroup;
+  const leaves = (items: Item[]): AiExampleCondition[] => items.flatMap((c) => ("conditions" in c ? leaves(c.conditions) : [c]));
+  // Fields an example uses: its conditions plus any tiered-value fields.
+  const fieldsOf = (ex: AiRuleExample) => [
+    ...leaves(ex.expected.conditions).map((c) => c.field),
+    ...ex.expected.actions.flatMap((a) => [a.outputField, a.bracketField]).filter((k): k is string => typeof k === "string"),
+  ];
+  const hasGroup = (ex: AiRuleExample) => ex.expected.conditions.some((c) => "conditions" in c);
+  const priority = (ex: AiRuleExample) =>
+    (hasGroup(ex) ? 2 : 0) + (ex.expected.actions.some((a) => a.type === "Bracket Lookup") ? 1 : 0);
+  const usable = AI_RULE_EXAMPLES.filter((ex) => fieldsOf(ex).every((k) => keys.has(k)))
+    // Hardest patterns first, so they survive the cut: brackets, then tiered values.
+    .sort((a, b) => priority(b) - priority(a))
+    .slice(0, 8);
+  if (usable.length === 0) return "";
+  return (
+    "\n\nExamples (input → output JSON):\n" +
+    usable.map((ex) => `Input: ${ex.text}\nOutput: ${JSON.stringify(ex.expected)}`).join("\n\n")
+  );
+}
+
+// ---- Provider 1: Ollama (local, free) -----------------------------------
+// Ollama's /api/chat accepts a JSON schema in `format` and returns the JSON
+// as a string in message.content.
+async function callOllama(system: string, text: string): Promise<ProviderResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        stream: false,
+        format: RULE_SCHEMA,
+        options: { temperature: 0 }, // same input → same output; best for rules
+        messages: [
+          { role: "system", content: `${system}\n\nRespond ONLY with JSON matching the requested schema.` },
+          { role: "user", content: text },
+        ],
+      }),
+    });
+  } catch {
+    return { ok: false, status: 503, error: `Couldn't reach Ollama at ${OLLAMA_URL}. Open the Ollama app (or run "ollama serve") and try again.` };
+  }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error("[ai-rule] Ollama error", res.status, detail);
+    if (res.status === 404 || detail.includes("not found")) {
+      return { ok: false, status: 502, error: `Model "${OLLAMA_MODEL}" isn't downloaded. Run: ollama pull ${OLLAMA_MODEL}` };
+    }
+    return { ok: false, status: 502, error: "Ollama returned an error. Check the terminal running Ollama." };
+  }
+
+  const data = await res.json();
+  try {
+    return { ok: true, raw: JSON.parse(data?.message?.content ?? "") as AiRuleDraft };
+  } catch {
+    return { ok: false, status: 502, error: "The local model didn't return valid JSON. Try again, or use a bigger model (e.g. qwen2.5:7b)." };
+  }
+}
+
+// ---- Provider 2: Groq / any OpenAI-compatible API (free tiers) -----------
+// "json_object" mode guarantees valid JSON; the schema itself is described in
+// the prompt, because not every free model supports strict json_schema.
+async function callOpenAICompatible(system: string, text: string): Promise<ProviderResult> {
+  const apiKey = process.env.GROQ_API_KEY ?? process.env.AI_API_KEY;
+  if (!apiKey) {
+    return { ok: false, status: 503, error: "Add GROQ_API_KEY to .env.local (free key at console.groq.com) and restart the dev server." };
+  }
+
+  // Prefer "json_schema" (the model must follow RULE_SCHEMA exactly). Some
+  // models only support "json_object" (any valid JSON) — fall back to that.
+  const call = (responseFormat: object) =>
+    fetch(`${OPENAI_COMPAT_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: OPENAI_COMPAT_MODEL,
+        temperature: 0,
+        response_format: responseFormat,
+        messages: [
+          { role: "system", content: `${system}\n\nRespond ONLY with a JSON object matching this JSON schema:\n${JSON.stringify(RULE_SCHEMA)}` },
+          { role: "user", content: text },
+        ],
+      }),
+    });
+
+  let res: Response;
+  try {
+    res = await call({ type: "json_schema", json_schema: { name: "business_rule", schema: RULE_SCHEMA } });
+    if (res.status === 400) {
+      const detail = await res.clone().text();
+      if (/response_format|json_schema|structured/i.test(detail)) res = await call({ type: "json_object" });
+    }
+  } catch {
+    return { ok: false, status: 502, error: `Couldn't reach ${OPENAI_COMPAT_URL}. Check your internet connection.` };
+  }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error("[ai-rule] OpenAI-compatible API error", res.status, detail);
+    // Show the provider's own message — it says exactly what's wrong.
+    let providerMessage = "";
+    try {
+      providerMessage = JSON.parse(detail)?.error?.message ?? "";
+    } catch {
+      providerMessage = detail.slice(0, 200);
+    }
+    const error =
+      res.status === 401 ? "The API key was rejected — check GROQ_API_KEY in .env.local (no quotes or spaces), then restart."
+      : res.status === 429 ? "Free-tier limit reached — wait a minute and try again."
+      : res.status === 404 || /model_not_found|does not exist|decommissioned/i.test(detail) ? `Model "${OPENAI_COMPAT_MODEL}" isn't available — set AI_MODEL in .env.local to a current model. (${providerMessage})`
+      : `AI service error ${res.status}: ${providerMessage || "unknown error"}`;
+    return { ok: false, status: 502, error };
+  }
+
+  const data = await res.json();
+  try {
+    return { ok: true, raw: JSON.parse(data?.choices?.[0]?.message?.content ?? "") as AiRuleDraft };
+  } catch {
+    return { ok: false, status: 502, error: "The AI didn't return valid JSON. Try again." };
+  }
+}
+
+// ---- Provider 3: Claude API (paid) ----------------------------------------
+// Claude is forced to answer via a tool call, so the output always matches
+// RULE_SCHEMA and arrives already parsed in tool_use.input.
+async function callAnthropic(system: string, text: string): Promise<ProviderResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { ok: false, status: 503, error: "AI_PROVIDER is anthropic but ANTHROPIC_API_KEY is missing in .env.local." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: 1024,
+        system,
+        tools: [{ name: "build_rule", description: "Return the business rule described by the user, using only the provided field keys.", input_schema: RULE_SCHEMA }],
+        tool_choice: { type: "tool", name: "build_rule" },
+        messages: [{ role: "user", content: text }],
+      }),
+    });
+  } catch {
+    return { ok: false, status: 502, error: "Couldn't reach the Claude API. Check your internet connection." };
+  }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error("[ai-rule] Anthropic error", res.status, detail);
+    const error =
+      res.status === 401 ? "The API key was rejected — check ANTHROPIC_API_KEY."
+      : res.status === 429 ? "Rate limit reached — wait a moment and try again."
+      : res.status === 400 && detail.includes("credit") ? "Your API credit balance is too low."
+      : "The AI service returned an error. Try again.";
+    return { ok: false, status: 502, error };
+  }
+
+  const data = await res.json();
+  const toolUse = Array.isArray(data.content) ? data.content.find((b: { type: string }) => b.type === "tool_use") : undefined;
+  if (!toolUse?.input) return { ok: false, status: 502, error: "The AI didn't return a rule. Try rephrasing." };
+  return { ok: true, raw: toolUse.input as AiRuleDraft };
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<AiRuleResponse>> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ ok: false, error: "AI is not configured. Add ANTHROPIC_API_KEY to .env.local and restart the dev server." }, { status: 503 });
-  }
-
   let body: AiRuleRequest;
   try {
     body = await req.json();
@@ -94,48 +320,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<AiRuleRespons
   if (text.length > MAX_TEXT) return NextResponse.json({ ok: false, error: `Keep the description under ${MAX_TEXT} characters.` }, { status: 400 });
   if (fields.length === 0) return NextResponse.json({ ok: false, error: "No fields are available for this industry." }, { status: 400 });
 
-  let res: Response;
-  try {
-    res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1024,
-        system: systemPrompt(String(body.domain ?? ""), fields),
-        tools: [BUILD_RULE_TOOL],
-        tool_choice: { type: "tool", name: "build_rule" },
-        messages: [{ role: "user", content: text }],
-      }),
-    });
-  } catch {
-    return NextResponse.json({ ok: false, error: "Couldn't reach the AI service. Check your internet connection." }, { status: 502 });
-  }
+  const system = systemPrompt(String(body.domain ?? ""), fields);
+  const result =
+    PROVIDER === "anthropic" ? await callAnthropic(system, text)
+    : PROVIDER === "groq" || PROVIDER === "openai" ? await callOpenAICompatible(system, text)
+    : await callOllama(system, text);
+  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    console.error("[ai-rule] Anthropic error", res.status, detail);
-    const error =
-      res.status === 401 ? "The API key was rejected — check ANTHROPIC_API_KEY."
-      : res.status === 429 ? "Rate limit reached — wait a moment and try again."
-      : res.status === 400 && detail.includes("credit") ? "Your API credit balance is too low."
-      : "The AI service returned an error. Try again.";
-    return NextResponse.json({ ok: false, error }, { status: 502 });
-  }
-
-  const data = await res.json();
-  const toolUse = Array.isArray(data.content) ? data.content.find((b: { type: string }) => b.type === "tool_use") : undefined;
-  if (!toolUse?.input) {
-    return NextResponse.json({ ok: false, error: "The AI didn't return a rule. Try rephrasing." }, { status: 502 });
-  }
-
-  const draft = sanitizeDraft(toolUse.input as AiRuleDraft, fields);
-  if (draft.conditions.length === 0 && draft.actions.length === 0) {
-    return NextResponse.json({ ok: false, error: draft.warnings[0] ?? "Couldn't map that description to any fields." }, { status: 422 });
+  const draft = sanitizeDraft(unwrapDraft(result.raw), fields);
+  // sanitizeDraft refuses unsafe drafts — e.g. every condition invalid (the
+  // actions would then run for everyone), or a decision with no conditions.
+  if (draft.refusal) {
+    // Log what the model actually said, so you can see WHY in the terminal.
+    console.warn("[ai-rule] Refused answer for:", text, "\n→", JSON.stringify(result.raw).slice(0, 1500));
+    return NextResponse.json({ ok: false, error: draft.refusal }, { status: 422 });
   }
   return NextResponse.json({ ok: true, draft });
 }

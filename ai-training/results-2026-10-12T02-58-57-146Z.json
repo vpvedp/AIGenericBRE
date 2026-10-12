@@ -1,0 +1,94 @@
+{
+  "file": "test.jsonl",
+  "passed": 3,
+  "total": 3,
+  "results": [
+    {
+      "id": "ex-001",
+      "tag": "boolean",
+      "text": "Reject if KYC is not verified",
+      "pass": true,
+      "problems": [],
+      "ms": 959,
+      "got": {
+        "name": "Reject If KYC Not Verified",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "kyc_verified",
+            "operator": "=",
+            "value": "false"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "KYC_NOT_VERIFIED",
+            "message": "KYC not verified"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when KYC is not verified.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-002",
+      "tag": "indian-amount",
+      "text": "Reject if net worth is below 1 crore",
+      "pass": true,
+      "problems": [],
+      "ms": 966,
+      "got": {
+        "name": "Reject Low Net Worth",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "net_worth",
+            "operator": "<",
+            "value": "10000000"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "NET_WORTH_BELOW_MIN",
+            "message": "Net worth below required minimum"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when net worth is less than 1 crore rupees.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-003",
+      "tag": "numeric",
+      "text": "Decline the case if gold purity is more than 18%",
+      "pass": true,
+      "problems": [],
+      "ms": 994,
+      "got": {
+        "name": "Reject High Gold Purity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "purity_grade",
+            "operator": ">",
+            "value": "18"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "PURITY_ABOVE_MAX",
+            "message": "Gold purity exceeds allowed limit"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when gold purity is greater than 18%.",
+        "warnings": []
+      }
+    }
+  ]
+}

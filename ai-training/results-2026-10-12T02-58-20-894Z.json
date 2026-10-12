@@ -1,0 +1,344 @@
+{
+  "file": "test.jsonl",
+  "passed": 7,
+  "total": 21,
+  "results": [
+    {
+      "id": "ex-001",
+      "tag": "boolean",
+      "text": "Reject if KYC is not verified",
+      "pass": true,
+      "problems": [],
+      "ms": 1459,
+      "got": {
+        "name": "Reject If KYC Not Verified",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "kyc_verified",
+            "operator": "=",
+            "value": "false"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "KYC_NOT_VERIFIED",
+            "message": "KYC not verified"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when KYC is not verified.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-002",
+      "tag": "indian-amount",
+      "text": "Reject if net worth is below 1 crore",
+      "pass": true,
+      "problems": [],
+      "ms": 960,
+      "got": {
+        "name": "Reject Low Net Worth",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "net_worth",
+            "operator": "<",
+            "value": "10000000"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "NET_WORTH_BELOW_MIN",
+            "message": "Net worth below required minimum"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when net worth is less than 1 crore rupees.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-003",
+      "tag": "numeric",
+      "text": "Decline the case if gold purity is more than 18%",
+      "pass": true,
+      "problems": [],
+      "ms": 1073,
+      "got": {
+        "name": "Reject High Gold Purity",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "purity_grade",
+            "operator": ">",
+            "value": "18"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject",
+            "reasonCode": "PURITY_ABOVE_MAX",
+            "message": "Gold purity exceeds allowed limit"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject the application when gold purity is greater than 18%.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-004",
+      "tag": "numeric",
+      "text": "Reject if monthly income is at least 25,000",
+      "pass": true,
+      "problems": [],
+      "ms": 1003,
+      "got": {
+        "name": "Reject High Monthly Income",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "monthly_income",
+            "operator": ">=",
+            "value": "25000"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Reject"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Reject applications where the monthly income is at least 25,000 rupees.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-005",
+      "tag": "else",
+      "text": "Approve if requested credit limit exceeds 100,000, otherwise reject",
+      "pass": true,
+      "problems": [],
+      "ms": 880,
+      "got": {
+        "name": "Approve High Credit Limit",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "requested_credit_limit",
+            "operator": ">",
+            "value": "100000"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Approve"
+          }
+        ],
+        "elseActions": [
+          {
+            "type": "Reject",
+            "reasonCode": "LIMIT_BELOW_THRESHOLD",
+            "message": "Requested credit limit below 100k"
+          }
+        ],
+        "explanation": "Approve if the requested credit limit is greater than 100,000 rupees; otherwise reject.",
+        "warnings": []
+      }
+    },
+    {
+      "id": "ex-006",
+      "tag": "numeric",
+      "text": "Refer to an underwriter if applicant age is more than 18",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 74,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-007",
+      "tag": "two-and",
+      "text": "Flag for review if sum assured is greater than ₹5,000,000 and applicant age exceeds 65",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 73,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-008",
+      "tag": "two-and",
+      "text": "Reject the application if applicant age is not more than 70 and net worth is a minimum of ₹10,000,000",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 85,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-009",
+      "tag": "boolean",
+      "text": "Flag for review if KYC is verified",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 105,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-011",
+      "tag": "enum",
+      "text": "Reject if current city is not Mumbai",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 76,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-012",
+      "tag": "mixed",
+      "text": "Reject if current city is Mumbai and applicant age is lower than 65",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 69,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-014",
+      "tag": "numeric",
+      "text": "Deny the request if investment amount is equal to or above ₹100,000",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 72,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-015",
+      "tag": "two-or",
+      "text": "Send it for manual review if requested LTV is over 80% or appraised value is at least 500,000",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 74,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-016",
+      "tag": "two-or",
+      "text": "Send it for manual review if LTV falls below 75% or property value is lower than ₹3,000,000",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 71,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-019",
+      "tag": "unmappable",
+      "text": "Approve if the applicant owns a pet",
+      "pass": true,
+      "problems": [],
+      "ms": 75,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-021",
+      "tag": "numeric",
+      "text": "Flag for review if applicant age is above 65",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 78,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-022",
+      "tag": "else",
+      "text": "Approve if applicant age exceeds 25, else reject it",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 57,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-024",
+      "tag": "between",
+      "text": "Send it for manual review if applicant age is between 25 and 60",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 67,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-030",
+      "tag": "enum",
+      "text": "Reject if segment tier is Mass",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 75,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-034",
+      "tag": "indian-amount",
+      "text": "Reject the application if appraised value is up to 5 lakh",
+      "pass": false,
+      "problems": [
+        "error: Free-tier limit reached — wait a minute and try again."
+      ],
+      "ms": 80,
+      "got": "Free-tier limit reached — wait a minute and try again."
+    },
+    {
+      "id": "ex-036",
+      "tag": "enum-in",
+      "text": "Approve if card type requested is Standard or Platinum",
+      "pass": true,
+      "problems": [],
+      "ms": 814,
+      "got": {
+        "name": "Approve Standard or Platinum Card",
+        "logic": "AND",
+        "conditions": [
+          {
+            "field": "card_type_requested",
+            "operator": "in",
+            "value": "Standard,Platinum"
+          }
+        ],
+        "actions": [
+          {
+            "type": "Approve"
+          }
+        ],
+        "elseActions": [],
+        "explanation": "Approve when the requested card type is Standard or Platinum",
+        "warnings": []
+      }
+    }
+  ]
+}

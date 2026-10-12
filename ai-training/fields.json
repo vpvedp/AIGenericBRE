@@ -1,0 +1,462 @@
+{
+  "Lending": [
+    {
+      "key": "credit_score",
+      "label": "Bureau Credit Score",
+      "type": "number"
+    },
+    {
+      "key": "monthly_income",
+      "label": "Monthly Income",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "monthly_liabilities",
+      "label": "Monthly Liabilities",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "loan_amount",
+      "label": "Loan Amount Requested",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "loan_type",
+      "label": "Loan Type",
+      "type": "enum",
+      "options": [
+        "Personal Loan",
+        "Home Loan",
+        "Vehicle Loan",
+        "Business Loan"
+      ]
+    },
+    {
+      "key": "dti_ratio",
+      "label": "Debt-to-Income Ratio",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "employment_type",
+      "label": "Employment Type",
+      "type": "enum",
+      "options": [
+        "Salaried",
+        "Self-Employed",
+        "Business Owner",
+        "Government"
+      ]
+    },
+    {
+      "key": "ltv_ratio",
+      "label": "LTV Ratio",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "eligible_loan_amount",
+      "label": "Eligible Loan Amount",
+      "type": "number",
+      "unit": "₹"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string"
+    },
+    {
+      "key": "property_value",
+      "label": "Property Value",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "interest_rate",
+      "label": "Interest Rate",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "applicant_eligible",
+      "label": "Applicant Eligible",
+      "type": "boolean"
+    },
+    {
+      "key": "income_eligible",
+      "label": "Income Eligible",
+      "type": "boolean"
+    },
+    {
+      "key": "loan_decision",
+      "label": "Loan Decision",
+      "type": "string"
+    },
+    {
+      "key": "approved_amount",
+      "label": "Approved Amount",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "applicant_age",
+      "label": "Applicant Age",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "type": "enum",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    },
+    {
+      "key": "city",
+      "label": "Current City",
+      "type": "enum",
+      "options": [
+        "Mumbai",
+        "Delhi",
+        "Bengaluru",
+        "Chennai",
+        "Pune",
+        "Ahmedabad",
+        "Other"
+      ]
+    },
+    {
+      "key": "segment",
+      "label": "Segment Tier",
+      "type": "enum",
+      "options": [
+        "Mass",
+        "Affluent",
+        "Premium"
+      ]
+    }
+  ],
+  "Insurance": [
+    {
+      "key": "smoker",
+      "label": "Smoker Status",
+      "type": "boolean"
+    },
+    {
+      "key": "occupation_type",
+      "label": "Occupation Risk Tier",
+      "type": "enum",
+      "options": [
+        "Low Risk",
+        "Medium Risk",
+        "High Risk"
+      ]
+    },
+    {
+      "key": "bmi",
+      "label": "BMI Metric",
+      "type": "number"
+    },
+    {
+      "key": "sum_assured",
+      "label": "Sum Assured Capital",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "base_premium",
+      "label": "Base Premium",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "medical_history",
+      "label": "Medical History Flag",
+      "type": "boolean"
+    },
+    {
+      "key": "applicant_age",
+      "label": "Applicant Age",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "type": "enum",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    },
+    {
+      "key": "city",
+      "label": "Current City",
+      "type": "enum",
+      "options": [
+        "Mumbai",
+        "Delhi",
+        "Bengaluru",
+        "Chennai",
+        "Pune",
+        "Ahmedabad",
+        "Other"
+      ]
+    },
+    {
+      "key": "segment",
+      "label": "Segment Tier",
+      "type": "enum",
+      "options": [
+        "Mass",
+        "Affluent",
+        "Premium"
+      ]
+    }
+  ],
+  "NBFC": [
+    {
+      "key": "collateral_type",
+      "label": "Collateral Asset Type",
+      "type": "enum",
+      "options": [
+        "Gold",
+        "Vehicle",
+        "Property",
+        "Securities"
+      ]
+    },
+    {
+      "key": "appraised_value",
+      "label": "Appraised Asset Value",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "purity_grade",
+      "label": "Purity / Grade %",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "ltv_requested",
+      "label": "LTV Requested",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "applicant_age",
+      "label": "Applicant Age",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "type": "enum",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    },
+    {
+      "key": "city",
+      "label": "Current City",
+      "type": "enum",
+      "options": [
+        "Mumbai",
+        "Delhi",
+        "Bengaluru",
+        "Chennai",
+        "Pune",
+        "Ahmedabad",
+        "Other"
+      ]
+    },
+    {
+      "key": "segment",
+      "label": "Segment Tier",
+      "type": "enum",
+      "options": [
+        "Mass",
+        "Affluent",
+        "Premium"
+      ]
+    }
+  ],
+  "CreditCards": [
+    {
+      "key": "annual_income",
+      "label": "Annual Income",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "requested_credit_limit",
+      "label": "Requested Credit Limit",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "credit_utilization_ratio",
+      "label": "Credit Utilization Ratio",
+      "type": "number",
+      "unit": "%"
+    },
+    {
+      "key": "existing_cards_count",
+      "label": "Existing Cards Held",
+      "type": "number"
+    },
+    {
+      "key": "card_type_requested",
+      "label": "Card Type Requested",
+      "type": "enum",
+      "options": [
+        "Standard",
+        "Gold",
+        "Platinum",
+        "Signature"
+      ]
+    },
+    {
+      "key": "late_payment_history",
+      "label": "Late Payment History",
+      "type": "boolean"
+    },
+    {
+      "key": "applicant_age",
+      "label": "Applicant Age",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "type": "enum",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    },
+    {
+      "key": "city",
+      "label": "Current City",
+      "type": "enum",
+      "options": [
+        "Mumbai",
+        "Delhi",
+        "Bengaluru",
+        "Chennai",
+        "Pune",
+        "Ahmedabad",
+        "Other"
+      ]
+    },
+    {
+      "key": "segment",
+      "label": "Segment Tier",
+      "type": "enum",
+      "options": [
+        "Mass",
+        "Affluent",
+        "Premium"
+      ]
+    }
+  ],
+  "Wealth": [
+    {
+      "key": "investment_amount",
+      "label": "Investment Amount",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "risk_appetite",
+      "label": "Risk Appetite",
+      "type": "enum",
+      "options": [
+        "Conservative",
+        "Moderate",
+        "Aggressive"
+      ]
+    },
+    {
+      "key": "portfolio_type",
+      "label": "Portfolio Type",
+      "type": "enum",
+      "options": [
+        "Equity",
+        "Debt",
+        "Hybrid",
+        "Balanced"
+      ]
+    },
+    {
+      "key": "kyc_verified",
+      "label": "KYC Verified",
+      "type": "boolean"
+    },
+    {
+      "key": "net_worth",
+      "label": "Net Worth",
+      "type": "currency",
+      "unit": "₹"
+    },
+    {
+      "key": "investment_horizon_years",
+      "label": "Investment Horizon",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "applicant_age",
+      "label": "Applicant Age",
+      "type": "number",
+      "unit": "years"
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "type": "enum",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    },
+    {
+      "key": "city",
+      "label": "Current City",
+      "type": "enum",
+      "options": [
+        "Mumbai",
+        "Delhi",
+        "Bengaluru",
+        "Chennai",
+        "Pune",
+        "Ahmedabad",
+        "Other"
+      ]
+    },
+    {
+      "key": "segment",
+      "label": "Segment Tier",
+      "type": "enum",
+      "options": [
+        "Mass",
+        "Affluent",
+        "Premium"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "file": "test.jsonl",
+  "passed": 1,
+  "total": 21,
+  "results": [
+    {
+      "id": "ex-001",
+      "tag": "boolean",
+      "text": "Reject if KYC is not verified",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 90,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-002",
+      "tag": "indian-amount",
+      "text": "Reject if net worth is below 1 crore",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 111,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-003",
+      "tag": "numeric",
+      "text": "Decline the case if gold purity is more than 18%",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 56,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-004",
+      "tag": "numeric",
+      "text": "Reject if monthly income is at least 25,000",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 15,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-005",
+      "tag": "else",
+      "text": "Approve if requested credit limit exceeds 100,000, otherwise reject",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 17,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-006",
+      "tag": "numeric",
+      "text": "Refer to an underwriter if applicant age is more than 18",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 38,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-007",
+      "tag": "two-and",
+      "text": "Flag for review if sum assured is greater than ₹5,000,000 and applicant age exceeds 65",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 32,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-008",
+      "tag": "two-and",
+      "text": "Reject the application if applicant age is not more than 70 and net worth is a minimum of ₹10,000,000",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 37,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-009",
+      "tag": "boolean",
+      "text": "Flag for review if KYC is verified",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 25,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-011",
+      "tag": "enum",
+      "text": "Reject if current city is not Mumbai",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 26,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-012",
+      "tag": "mixed",
+      "text": "Reject if current city is Mumbai and applicant age is lower than 65",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 15,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-014",
+      "tag": "numeric",
+      "text": "Deny the request if investment amount is equal to or above ₹100,000",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 12,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-015",
+      "tag": "two-or",
+      "text": "Send it for manual review if requested LTV is over 80% or appraised value is at least 500,000",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 13,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-016",
+      "tag": "two-or",
+      "text": "Send it for manual review if LTV falls below 75% or property value is lower than ₹3,000,000",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 20,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-019",
+      "tag": "unmappable",
+      "text": "Approve if the applicant owns a pet",
+      "pass": true,
+      "problems": [],
+      "ms": 15,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-021",
+      "tag": "numeric",
+      "text": "Flag for review if applicant age is above 65",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 14,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-022",
+      "tag": "else",
+      "text": "Approve if applicant age exceeds 25, else reject it",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 19,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-024",
+      "tag": "between",
+      "text": "Send it for manual review if applicant age is between 25 and 60",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 14,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-030",
+      "tag": "enum",
+      "text": "Reject if segment tier is Mass",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 15,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-034",
+      "tag": "indian-amount",
+      "text": "Reject the application if appraised value is up to 5 lakh",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 16,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    },
+    {
+      "id": "ex-036",
+      "tag": "enum-in",
+      "text": "Approve if card type requested is Standard or Platinum",
+      "pass": false,
+      "problems": [
+        "error: Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+      ],
+      "ms": 17,
+      "got": "Couldn't reach Ollama at http://localhost:11434. Open the Ollama app (or run \"ollama serve\") and try again."
+    }
+  ]
+}
