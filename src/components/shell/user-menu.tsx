@@ -1,5 +1,7 @@
 "use client";
 
+import { signOut } from "@/lib/auth/client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, ShieldCheck, User, ChevronDown } from "lucide-react";
@@ -65,7 +67,8 @@ export function UserMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onClick={() => {
+            onClick={async () => {
+              await signOut(); // clears the server session cookie
               logout();
               router.push("/login");
             }}

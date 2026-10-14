@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_ACTION_TYPES, AI_OPERATORS, AiRuleDraft, AiRuleRequest, AiRuleResponse, sanitizeDraft, unwrapDraft } from "@/lib/ai-rule";
+import { z } from "zod";
+import { getSession } from "@/lib/auth/require-session";
+import { rateLimit } from "@/lib/rate-limit";
 import { AI_RULE_EXAMPLES, AiExampleCondition, AiExampleGroup, AiRuleExample } from "@/lib/ai-rule-examples";
 
 // POST /api/ai-rule — plain English → draft rule for the Rule Builder.
@@ -306,26 +309,66 @@ async function callAnthropic(system: string, text: string): Promise<ProviderResu
   return { ok: true, raw: toolUse.input as AiRuleDraft };
 }
 
+// What the browser may send. Anything else is rejected before it reaches the AI
+// (keeps prompts small, blocks junk, and limits what can be injected).
+const FIELD_TYPES = ["number", "string", "boolean", "enum", "currency", "percentage", "date", "list"] as const;
+const RequestBody = z.object({
+  text: z.string().trim().min(1, "Describe the rule first.").max(MAX_TEXT, `Keep the description under ${MAX_TEXT} characters.`),
+  domain: z.string().trim().max(60).default(""),
+  fields: z
+    .array(
+      z.object({
+        key: z.string().regex(/^[a-zA-Z0-9_.-]{1,64}$/, "Invalid field key."),
+        label: z.string().max(120),
+        type: z.enum(FIELD_TYPES),
+        options: z.array(z.string().max(80)).max(50).optional(),
+        unit: z.string().max(20).optional(),
+      })
+    )
+    .min(1, "No fields are available for this industry.")
+    .max(200),
+});
+
+// Limits that protect the (free-tier) AI key. Override in .env.local / Vercel.
+const PER_MINUTE = Number(process.env.AI_RATE_PER_MIN ?? 10); // per signed-in user
+const PER_DAY = Number(process.env.AI_DAILY_LIMIT ?? 300); // whole app
+
 export async function POST(req: NextRequest): Promise<NextResponse<AiRuleResponse>> {
-  let body: AiRuleRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ ok: false, error: "Request body must be valid JSON." }, { status: 400 });
+  // 1) Who is asking? (src/proxy.ts checks too — this is the second check.)
+  const session = await getSession(req);
+  if (!session) return NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 });
+
+  // 2) Is the request well-formed?
+  const parsed = RequestBody.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? "Invalid request.";
+    return NextResponse.json({ ok: false, error: message === "Invalid input" ? "Invalid request." : message }, { status: 400 });
+  }
+  const { text, domain, fields } = parsed.data;
+
+  // 3) Within the limits? (Message wording matters: the scorer retries on "rate limit".)
+  const perUser = rateLimit(`ai:user:${session.userId}`, PER_MINUTE, 60_000);
+  if (!perUser.ok) {
+    return NextResponse.json({ ok: false, error: `Rate limit reached — try again in ${perUser.retryAfterSec}s.` }, { status: 429 });
+  }
+  const perDay = rateLimit("ai:day", PER_DAY, 24 * 3600_000);
+  if (!perDay.ok) {
+    return NextResponse.json({ ok: false, error: "Daily AI limit reached for this app — try again tomorrow." }, { status: 429 });
   }
 
-  const text = typeof body.text === "string" ? body.text.trim() : "";
-  const fields = Array.isArray(body.fields) ? body.fields.filter((f) => f && typeof f.key === "string") : [];
-  if (!text) return NextResponse.json({ ok: false, error: "Describe the rule first." }, { status: 400 });
-  if (text.length > MAX_TEXT) return NextResponse.json({ ok: false, error: `Keep the description under ${MAX_TEXT} characters.` }, { status: 400 });
-  if (fields.length === 0) return NextResponse.json({ ok: false, error: "No fields are available for this industry." }, { status: 400 });
-
-  const system = systemPrompt(String(body.domain ?? ""), fields);
+  const started = Date.now();
+  const system = systemPrompt(domain, fields);
   const result =
     PROVIDER === "anthropic" ? await callAnthropic(system, text)
     : PROVIDER === "groq" || PROVIDER === "openai" ? await callOpenAICompatible(system, text)
     : await callOllama(system, text);
-  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+  // One log line per request: who, which AI, how long, outcome. Never log the API key.
+  const log = (outcome: string) =>
+    console.info(`[ai-rule] user=${session.userId} provider=${PROVIDER} ms=${Date.now() - started} outcome=${outcome}`);
+  if (!result.ok) {
+    log(`error:${result.status}`);
+    return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+  }
 
   const draft = sanitizeDraft(unwrapDraft(result.raw), fields);
   // sanitizeDraft refuses unsafe drafts — e.g. every condition invalid (the
@@ -333,7 +376,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<AiRuleRespons
   if (draft.refusal) {
     // Log what the model actually said, so you can see WHY in the terminal.
     console.warn("[ai-rule] Refused answer for:", text, "\n→", JSON.stringify(result.raw).slice(0, 1500));
+    log("refused");
     return NextResponse.json({ ok: false, error: draft.refusal }, { status: 422 });
   }
+  log(`ok warnings=${draft.warnings.length}`);
   return NextResponse.json({ ok: true, draft });
 }

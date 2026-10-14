@@ -6,6 +6,8 @@
 //              --url http://localhost:3000   (app address)
 //              --limit 5           (only the first N, for a quick check)
 //              --wait 20 --retries 6   (rate-limit handling for free tiers)
+//              --user EMP001 --pass "..."   (sign-in; only needed when APP_USERS is set —
+//                                            in local demo mode any ID/password works)
 //
 // It calls YOUR app's /api/ai-rule (the same path the popup uses), so it
 // tests the prompt + few-shot examples + sanitizeDraft together.
@@ -25,6 +27,8 @@ const URL = arg("url", "http://localhost:3000");
 const LIMIT = Number(arg("limit", "0"));
 const WAIT_S = Number(arg("wait", "20"));   // seconds to wait after a rate-limit error
 const RETRIES = Number(arg("retries", "6"));
+const USER = arg("user", process.env.BRE_USER ?? "EVALUATOR");
+const PASS = arg("pass", process.env.BRE_PASS ?? "evaluator");
 
 const FIELDS = JSON.parse(fs.readFileSync(path.join(HERE, "fields.json"), "utf8"));
 let rows = fs.readFileSync(path.join(HERE, FILE), "utf8").trim().split("\n").map((l) => JSON.parse(l));
@@ -61,7 +65,26 @@ function score(expected, got) {
   return problems;
 }
 
-console.log(`Scoring ${rows.length} examples from ${FILE} against ${URL}/api/ai-rule ...\n`);
+// The AI route needs a signed-in session: log in once and reuse the cookie.
+let cookie = "";
+try {
+  const res = await fetch(`${URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ employeeId: USER, password: PASS }),
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    console.error(`Sign-in failed: ${data.error}\nPass your login with --user EMP001 --pass "your-password".`);
+    process.exit(1);
+  }
+  cookie = (res.headers.get("set-cookie") ?? "").split(";")[0];
+} catch {
+  console.error(`Can't reach ${URL}. Is "npm run dev" running?`);
+  process.exit(1);
+}
+
+console.log(`Scoring ${rows.length} examples from ${FILE} against ${URL}/api/ai-rule as ${USER} ...\n`);
 const results = [];
 for (const [i, ex] of rows.entries()) {
   let data, status, ms;
@@ -72,7 +95,7 @@ for (const [i, ex] of rows.entries()) {
     try {
       const res = await fetch(`${URL}/api/ai-rule`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", cookie },
         body: JSON.stringify({ text: ex.text, domain: ex.domain, fields: FIELDS[ex.domain] }),
       });
       status = res.status;

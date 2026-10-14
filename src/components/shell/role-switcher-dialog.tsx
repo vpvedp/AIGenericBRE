@@ -1,5 +1,7 @@
 "use client";
 
+import { hasServerSession, signIn } from "@/lib/auth/client";
+
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, ShieldCheck } from "lucide-react";
@@ -29,7 +31,16 @@ export function RoleSwitcherDialog({
   const loginAsUser = useAppStore((s) => s.loginAsUser);
   const dashboardConfigs = useAppStore((s) => s.dashboardConfigs);
 
-  const selectUser = (userId: string, name: string) => {
+  const selectUser = async (userId: string, name: string) => {
+    // Demo Mode from the login screen still needs a server session. In local
+    // demo mode (no APP_USERS) the server accepts it; on a real server it won't.
+    if (redirectTo && !(await hasServerSession())) {
+      const result = await signIn(userId, "demo");
+      if (!result.ok) {
+        toast.error("Demo Mode is off on this server", { description: "Sign in with your Employee ID and password." });
+        return;
+      }
+    }
     loginAsUser(userId);
     onOpenChange(false);
     toast.success(`Signed in as ${name}`);

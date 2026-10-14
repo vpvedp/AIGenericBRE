@@ -12,6 +12,7 @@ import { SparkleAccent } from "@/components/login/sparkle-accent";
 import { ProductMockup } from "@/components/login/product-mockup";
 import { FeatureBadge } from "@/components/login/feature-badge";
 import { RoleSwitcherDialog } from "@/components/shell/role-switcher-dialog";
+import { hasServerSession, signIn } from "@/lib/auth/client";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,26 +55,53 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const logout = useAppStore((s) => s.logout);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Where to go after sign-in: the page the proxy bounced us from (?next=…), else the user's landing page.
+  const destination = () => {
+    const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
+    return next && next.startsWith("/") && !next.startsWith("//") ? next : dashboardConfigs[currentUserId]?.landingRoute ?? "/dashboard";
+  };
+
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
-      router.replace(dashboardConfigs[currentUserId]?.landingRoute ?? "/dashboard");
-    }
-  }, [hasHydrated, isAuthenticated, dashboardConfigs, currentUserId, router]);
+    if (!hasHydrated || !isAuthenticated) return;
+    // The browser remembers "signed in", but the server session may have
+    // expired. Only skip the login screen if the server agrees.
+    let cancelled = false;
+    hasServerSession().then((valid) => {
+      if (cancelled) return;
+      if (valid) router.replace(destination());
+      else logout();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, isAuthenticated]);
 
   const totalRules = rules.length;
   const activeRules = rules.filter((r) => r.status === "Published").length;
   const simulationsRun = simulations.length + 256;
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeId.trim() || !password.trim()) {
       setError("Enter both your Employee ID and password to continue.");
       return;
     }
     setError("");
+    setSubmitting(true);
+    // The server checks the password and sets a signed, httpOnly session cookie.
+    const result = await signIn(employeeId, password);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     login();
     toast.success("Signed in successfully");
-    router.push(dashboardConfigs[currentUserId]?.landingRoute ?? "/dashboard");
+    router.push(destination());
   };
 
   return (
@@ -261,8 +289,8 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <Button type="submit" size="lg" className="w-full h-12 font-semibold shadow-sm bg-blue-600 hover:bg-blue-500 border-0 text-white transition-all hover:-translate-y-[2px] hover:shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-                Sign In
+              <Button type="submit" size="lg" disabled={submitting} className="w-full h-12 font-semibold shadow-sm bg-blue-600 hover:bg-blue-500 border-0 text-white transition-all hover:-translate-y-[2px] hover:shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                {submitting ? "Signing in…" : "Sign In"}
               </Button>
             </form>
 

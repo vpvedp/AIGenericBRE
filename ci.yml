@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ai_genric_bi, main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Dummy values so the production build works in CI. Not your real secrets.
+      SESSION_SECRET: ci-only-dummy-secret-0123456789abcdef0123456789
+      NEXT_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node (version from .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
