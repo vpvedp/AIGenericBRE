@@ -27,6 +27,7 @@ Several users: run `create-user.mjs` once per person and join the lines with `;`
 | `AI_MODEL` | `openai/gpt-oss-120b` | optional (this is the default) |
 | `AI_RATE_PER_MIN` | `10` | optional — AI requests per user per minute |
 | `AI_DAILY_LIMIT` | `300` | optional — AI requests per day for the whole app |
+| `DATABASE_URL` | Neon connection string (see step 5) | optional — saves rules and users in Postgres |
 
 Then **Deployments → Redeploy** so the variables take effect.
 
@@ -36,10 +37,32 @@ Then **Deployments → Redeploy** so the variables take effect.
 - Sign in with the ID/password from step 1 → Rule Builder → **Describe with AI**.
 - Logs: Vercel → your project → **Logs**. Look for `[auth] sign-in` and `[ai-rule] user=... outcome=ok`.
 
+## 5. Postgres (Neon, free) — rules and users in a real database
+
+Without `DATABASE_URL` the app works as before (rules in each browser, users from `APP_USERS`).
+
+1. **Create the database:** Vercel → your project → **Storage** → **Create Database** → **Neon** (free plan),
+   region **Singapore** (closest to India). Connect it to the project — Vercel adds `DATABASE_URL` for you.
+   (Or sign up at neon.tech, create a project, copy the **pooled** connection string, and add it as `DATABASE_URL` yourself.)
+2. **Redeploy.** The tables are created automatically on the first request.
+3. **Sign in once.** The first sign-in uploads that browser's rules as the starting set
+   (rules that shared an ID get a unique one, e.g. `RL-601-2`). After that, every browser loads rules from the database
+   and every change is saved within about a second.
+4. **Add people** (no redeploy needed) — put the same `DATABASE_URL` in `.env.local` on your laptop, then:
+   ```bash
+   node scripts/db-user.mjs add EMP002 "a-strong-password" "Kavita Rao"
+   node scripts/db-user.mjs list
+   node scripts/db-user.mjs disable EMP002
+   ```
+   `APP_USERS` keeps working next to the database — keep your own login there as a break-glass admin.
+
+Check it: Vercel → **Logs** → look for `[rules] user=... saved=...`, or Neon → **Tables** → `rules`.
+
 ## Good to know
 
 - **Never** put keys in code or commit `.env.local` (`.gitignore` already blocks `.env*`).
-- **Rules are still saved in each browser** (localStorage), not on the server. Moving them to Postgres is the next step.
+- **With `DATABASE_URL`, rules live in Postgres** and the browser keeps a copy for speed. If two people edit the *same* rule at the same moment, the last save wins.
+- **If the database is unreachable,** sign-in falls back to `APP_USERS` and rule changes stay in the browser (a message says so) until the next save works.
 - **Rate limits live in server memory.** On Vercel each instance counts separately and resets on restart. Fine for a portfolio demo; for real traffic use a shared store such as Upstash Redis (`src/lib/rate-limit.ts` keeps the same function).
 - `/api/decision` (the engine's demo API) is public on purpose — it uses no AI key. Everything else needs sign-in.
 - Demo Mode on the login page only works locally (no `APP_USERS`). On Vercel, users sign in with a real password.

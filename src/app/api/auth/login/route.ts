@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { checkLogin } from "@/lib/auth/users";
+import { authenticate } from "@/lib/auth/users";
 import { createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "@/lib/auth/session";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: `Too many attempts. Try again in ${limit.retryAfterSec}s.` }, { status: 429 });
   }
 
-  const result = checkLogin(employeeId, password);
+  const result = await authenticate(employeeId, password);
   if (!result.ok) {
     const error = result.reason === "not-configured" ? "Sign-in isn't configured on this server (APP_USERS is missing)." : "Wrong Employee ID or password.";
     return NextResponse.json({ ok: false, error }, { status: result.reason === "not-configured" ? 503 : 401 });

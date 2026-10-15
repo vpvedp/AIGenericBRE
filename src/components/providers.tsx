@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { getThemeDefinition, THEME_PRESETS } from "@/lib/theme-presets";
+import { RuleSync } from "@/components/rule-sync";
 
 function systemPrefersDark() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -102,6 +103,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delay={200}>
+      <RuleSync />
       <div className="h-full" style={{ visibility: hydrated ? "visible" : "hidden" }}>{children}</div>
       <Toaster
         position="top-right"

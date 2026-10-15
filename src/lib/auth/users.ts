@@ -1,7 +1,12 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { getReadyDb, isDbConfigured } from "@/lib/db";
 
-// Who may sign in. Users live in the APP_USERS environment variable, never in
-// code, and passwords are stored only as scrypt hashes (never plain text):
+// Who may sign in. Two places, checked in this order by authenticate():
+//   1. the app_users table in Postgres (when DATABASE_URL is set) — add people
+//      with:  node scripts/db-user.mjs add EMP002 "a-strong-password"
+//   2. the APP_USERS environment variable — handy as a "break-glass" admin
+//      that works even if the database is down.
+// Passwords are stored only as scrypt hashes (never plain text):
 //
 //   APP_USERS=EMP001:<salt>:<hash>;EMP002:<salt>:<hash>
 //
@@ -40,10 +45,47 @@ export function checkLogin(employeeId: string, password: string, env = process.e
   }
 
   const user = users.get(id);
-  // Always run scrypt — even for unknown IDs — so response time doesn't reveal which IDs exist.
-  const salt = user?.salt ?? "0".repeat(32);
-  const expected = Buffer.from(user?.hash ?? "0".repeat(KEY_LENGTH * 2), "hex");
-  const actual = scryptSync(password, salt, KEY_LENGTH);
-  const match = expected.length === actual.length && timingSafeEqual(expected, actual);
+  const match = verifyPassword(password, user?.salt ?? DUMMY_SALT, user?.hash ?? DUMMY_HASH);
   return user && match ? { ok: true, userId: id, demo: false } : { ok: false, reason: "invalid" };
+}
+
+const DUMMY_SALT = "0".repeat(32);
+const DUMMY_HASH = "0".repeat(KEY_LENGTH * 2);
+
+// Constant-time compare. Callers run it even for unknown IDs, so response time
+// doesn't reveal which IDs exist.
+function verifyPassword(password: string, salt: string, hashHex: string): boolean {
+  const expected = Buffer.from(hashHex, "hex");
+  const actual = scryptSync(password, salt, KEY_LENGTH);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/**
+ * Full sign-in check used by /api/auth/login: database users first, then APP_USERS.
+ * If the database can't be reached, APP_USERS still works (and the error is logged).
+ */
+export async function authenticate(employeeId: string, password: string, env = process.env): Promise<LoginCheck> {
+  const id = employeeId.trim().toUpperCase();
+  if (!id || !password) return { ok: false, reason: "invalid" };
+
+  if (isDbConfigured(env)) {
+    try {
+      const db = await getReadyDb();
+      const rows = db ? await db("SELECT salt, hash, active FROM app_users WHERE employee_id = $1", [id]) : [];
+      const row = rows[0];
+      if (row) {
+        const match = verifyPassword(password, row.salt, row.hash);
+        return match && row.active ? { ok: true, userId: id, demo: false } : { ok: false, reason: "invalid" };
+      }
+    } catch (e) {
+      console.error("[auth] user database unavailable, falling back to APP_USERS:", e instanceof Error ? e.message : e);
+    }
+    // Not in the database: try APP_USERS. With a database there is no demo mode
+    // and no "not configured" — an unknown ID is simply wrong.
+    if (parseUsers(env.APP_USERS).size > 0) return checkLogin(id, password, env);
+    verifyPassword(password, DUMMY_SALT, DUMMY_HASH);
+    return { ok: false, reason: "invalid" };
+  }
+
+  return checkLogin(id, password, env);
 }
