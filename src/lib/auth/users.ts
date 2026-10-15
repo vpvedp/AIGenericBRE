@@ -68,6 +68,28 @@ export async function authenticate(employeeId: string, password: string, env = p
   const id = employeeId.trim().toUpperCase();
   if (!id || !password) return { ok: false, reason: "invalid" };
 
+  const result = await realLogin(id, password, env);
+  // DEMO_MODE=on (local development only): IDs that aren't real users may sign
+  // in with any password. Real users still need their real password, and
+  // production ignores this switch completely.
+  if (!result.ok && env.DEMO_MODE === "on" && env.NODE_ENV !== "production" && !(await isRealUser(id, env))) {
+    return { ok: true, userId: id, demo: true };
+  }
+  return result;
+}
+
+async function isRealUser(id: string, env: NodeJS.ProcessEnv): Promise<boolean> {
+  if (parseUsers(env.APP_USERS).has(id)) return true;
+  if (!isDbConfigured(env)) return false;
+  try {
+    const db = await getReadyDb();
+    return db ? (await db("SELECT 1 FROM app_users WHERE employee_id = $1", [id])).length > 0 : false;
+  } catch {
+    return true; // can't tell → don't hand out a demo login for what may be a real ID
+  }
+}
+
+async function realLogin(id: string, password: string, env: NodeJS.ProcessEnv): Promise<LoginCheck> {
   if (isDbConfigured(env)) {
     try {
       const db = await getReadyDb();

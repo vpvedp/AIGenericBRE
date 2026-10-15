@@ -65,4 +65,4 @@ Check it: Vercel → **Logs** → look for `[rules] user=... saved=...`, or Neon
 - **If the database is unreachable,** sign-in falls back to `APP_USERS` and rule changes stay in the browser (a message says so) until the next save works.
 - **Rate limits live in server memory.** On Vercel each instance counts separately and resets on restart. Fine for a portfolio demo; for real traffic use a shared store such as Upstash Redis (`src/lib/rate-limit.ts` keeps the same function).
 - `/api/decision` (the engine's demo API) is public on purpose — it uses no AI key. Everything else needs sign-in.
-- Demo Mode on the login page only works locally (no `APP_USERS`). On Vercel, users sign in with a real password.
+- Demo Mode on the login page only works locally. It is on automatically when neither `APP_USERS` nor `DATABASE_URL` is set; with either set, add `DEMO_MODE=on` to `.env.local` to keep it. Real users still need their real password, and on Vercel (production) `DEMO_MODE` is ignored.

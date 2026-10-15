@@ -71,6 +71,19 @@ describe("users in the database", () => {
     expect(await authenticate("ANYONE", "anything", env)).toEqual({ ok: false, reason: "invalid" });
   });
 
+  it("DEMO_MODE=on in development: unknown IDs get a demo login, real users still need their password", async () => {
+    await getReadyDb();
+    await addUser(db, "EMP002", "kavita-pass-123");
+    const env = { NODE_ENV: "development", DATABASE_URL: "x", DEMO_MODE: "on" } as unknown as NodeJS.ProcessEnv;
+    expect(await authenticate("KAVITA", "demo", env)).toEqual({ ok: true, userId: "KAVITA", demo: true });
+    expect(await authenticate("EMP002", "wrong-password", env)).toEqual({ ok: false, reason: "invalid" });
+    expect(await authenticate("EMP002", "kavita-pass-123", env)).toEqual({ ok: true, userId: "EMP002", demo: false });
+  });
+
+  it("DEMO_MODE=on is ignored in production", async () => {
+    expect(await authenticate("ANYONE", "demo", prodEnv({ DEMO_MODE: "on" }))).toEqual({ ok: false, reason: "invalid" });
+  });
+
   it("if the database is down, APP_USERS users can still sign in", async () => {
     setDbForTests(async () => {
       throw new Error("connection refused");
