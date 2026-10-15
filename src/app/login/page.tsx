@@ -270,8 +270,11 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <p role="alert" aria-live="polite" className="flex items-center gap-1.5 text-sm text-destructive">
-                  <AlertTriangle className="size-3.5 shrink-0" /> {error}
+                // [contain:inline-size] → the message wraps to the card's width
+                // instead of stretching the card to fit one long line.
+                <p role="alert" aria-live="polite" className="flex items-start gap-1.5 text-sm text-destructive [contain:inline-size]">
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                  <span className="min-w-0">{error}</span>
                 </p>
               )}
 
